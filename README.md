@@ -41,10 +41,26 @@ pip install -r requirements.txt
 
 ### Dataset
 
-This project uses the **TemStaPro** dataset. Place the FASTA file at:
+The model is trained on the **TemStaPro** dataset (Major-30 set). Due to its large size (~314MB), the raw FASTA file is excluded from this repository.
+
+### Download Instructions
+
+1.  Download the dataset from **Zenodo**: [https://doi.org/10.5281/zenodo.7743637](https://doi.org/10.5281/zenodo.7743637)
+2.  Extract the `TemStaPro-Major-30-imbal-training.fasta` file.
+3.  Place it in a folder named `Dataset` as a sibling to the project directory:
+
 ```
-../Dataset/TemStaPro-Major-30-imbal-training.fasta
+├── Dataset/
+│   └── TemStaPro-Major-30-imbal-training.fasta
+└── TemStabilityProtein/  (This repo)
+    ├── create_database.py
+    └── ...
 ```
+
+### Citation
+
+If you use this dataset, please cite:
+> Pudžiuvelytė, I., et al. "TemStaPro: protein thermostability prediction using deep learning." Bioinformatics (2023).
 
 ## Usage
 
