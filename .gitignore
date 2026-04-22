@@ -5,6 +5,10 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+
+# Non-project scripts (PPT/report generation)
+create_final_ppt.py
+generate_report.py
 *.egg
 
 # Virtual environments
