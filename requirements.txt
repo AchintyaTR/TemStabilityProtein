@@ -1,0 +1,11 @@
+torch
+torch-geometric
+numpy
+pandas
+scikit-learn
+scipy
+matplotlib
+biopandas
+tqdm
+fair-esm
+requests

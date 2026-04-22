@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Data files (too large for git)
+*.csv
+*.fasta
+*.pdb
+alphafold_structures_100k/
+gnn_dataset_100k/
+
+# Trained models
+*.pth
+
+# Results / outputs
+*.png
+*.jpg
+*.jpeg
+
+# Presentations and reports
+*.pptx
+*.docx
+*.pdf
+
+# Zip archives
+*.zip
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# UniProt ID lists (generated/large)
+uniprot_ids.txt
+uniprot_ids_100k.txt
+uniprot_ids_20k.txt
+dev_uniprot_ids.txt
+
+# Template images (for PPT generation)
+template_images/
