@@ -13,14 +13,20 @@ Protein thermal stability is crucial for industrial and pharmaceutical applicati
 ## Project Structure
 
 ```
-├── create_database.py      # Parse FASTA dataset → protein_data.csv
-├── prepare_datasets.py     # Train/test split (80/20)
-├── download_pdb.py         # Download AlphaFold PDB structures
-├── gnn_data.py             # PyG Dataset: graph construction + ESM-2 features
-├── gnn_model.py            # GCN and GIN model architectures
-├── train_gnn.py            # Training pipeline with evaluation
-├── evaluate_model.py       # Model evaluation and visualization
-├── requirements.txt        # Python dependencies
+├── .github/                # CI/CD pipelines
+├── docs/                   # Reports and presentations
+├── scripts/                # Executable entry points
+│   ├── create_database.py
+│   ├── prepare_datasets.py
+│   ├── download_pdb.py
+│   ├── train.py            # Training pipeline with argparse support
+│   └── evaluate.py         # Model evaluation and visualization
+├── src/                    # Source code package
+│   ├── data/               # Data processing (gnn_data.py)
+│   └── models/             # Neural network architectures (gnn_model.py)
+├── tests/                  # Unit tests (pytest)
+├── requirements.txt        # Core Python dependencies
+├── requirements-dev.txt    # Development dependencies (pytest, black, etc.)
 └── README.md
 ```
 
@@ -37,6 +43,7 @@ Protein thermal stability is crucial for industrial and pharmaceutical applicati
 git clone https://github.com/AchintyaTR/TemStabilityProtein.git
 cd TemStabilityProtein
 pip install -r requirements.txt
+pip install -r requirements-dev.txt  # Optional: for development and testing
 ```
 
 ### Dataset
@@ -53,7 +60,9 @@ The model is trained on the **TemStaPro** dataset (Major-30 set). Due to its lar
 ├── Dataset/
 │   └── TemStaPro-Major-30-imbal-training.fasta
 └── TemStabilityProtein/  (This repo)
-    ├── create_database.py
+    ├── scripts/
+    │   ├── create_database.py
+    │   └── ...
     └── ...
 ```
 
@@ -64,23 +73,23 @@ If you use this dataset, please cite:
 
 ## Usage
 
-Run the pipeline in order:
+Run the pipeline in order from the project root:
 
 ```bash
 # 1. Parse FASTA → CSV database
-python create_database.py
+python scripts/create_database.py
 
 # 2. Split into train/test sets
-python prepare_datasets.py
+python scripts/prepare_datasets.py
 
 # 3. Download AlphaFold PDB structures
-python download_pdb.py
+python scripts/download_pdb.py
 
-# 4. Train the GNN model
-python train_gnn.py
+# 4. Train the GNN model (configurable via argparse)
+python scripts/train.py --batch_size 32 --epochs 50 --lr 0.001
 
 # 5. Evaluate the trained model
-python evaluate_model.py
+python scripts/evaluate.py --model_path gin_model_best.pth
 ```
 
 ## Model Architecture
