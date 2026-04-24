@@ -1,32 +1,40 @@
 import os
+import sys
+import argparse
+import logging
 import torch
 import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
 from torch.utils.data import Subset
 import numpy as np
-from gnn_data import ProteinGraphDataset
-from gnn_model import GNNModel, GINModel
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error, root_mean_squared_error
 from scipy.stats import pearsonr
 import matplotlib.pyplot as plt
 
-def train():
-    # settings
-    BATCH_SIZE = 32
-    EPOCHS = 50
-    LR = 0.001
+# Add project root to sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src.data.gnn_data import ProteinGraphDataset
+from src.models.gnn_model import GNNModel, GINModel
+
+# Setup basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def train(args):
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Using device: {DEVICE}")
+    logger.info(f"Using device: {DEVICE}")
 
     # Paths
-    project_dir = os.path.dirname(os.path.abspath(__file__))
+    project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     pdb_dir = os.path.join(project_dir, 'alphafold_structures_100k')
     csv_file = os.path.join(project_dir, 'data_100k.csv') 
     dataset_root = os.path.join(project_dir, 'gnn_dataset_100k')
 
     # Load Dataset
+    logger.info("Loading dataset...")
     dataset = ProteinGraphDataset(root=dataset_root, csv_file=csv_file, pdb_dir=pdb_dir)
-    print(f"Dataset size: {len(dataset)}")
+    logger.info(f"Dataset size: {len(dataset)}")
 
     # Split (Streaming approach to save RAM)
     indices = np.random.permutation(len(dataset))
@@ -37,25 +45,25 @@ def train():
     train_dataset = Subset(dataset, train_indices)
     test_dataset = Subset(dataset, test_indices)
 
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     # Model
-    model = GINModel(num_node_features=320, hidden_dim=128).to(DEVICE) # Increased hidden dim too
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=1e-4) # Added Weight Decay (L2)
+    model = GINModel(num_node_features=320, hidden_dim=args.hidden_dim).to(DEVICE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     criterion = torch.nn.MSELoss()
 
     # Early Stopping parameters
     best_test_loss = float('inf')
     best_epoch = 0
-    patience = 8
     patience_counter = 0
 
     # Training Loop
     train_losses = []
     test_losses = []
 
-    for epoch in range(EPOCHS):
+    logger.info(f"Starting training for {args.epochs} epochs...")
+    for epoch in range(args.epochs):
         model.train()
         total_loss = 0
         for data in train_loader:
@@ -95,8 +103,11 @@ def train():
         r2 = r2_score(all_targets, all_preds)
         pearson_corr, _ = pearsonr(all_targets, all_preds)
 
-        if (epoch + 1) % 1 == 0:
-            print(f'Epoch {epoch+1:03d} | Train MSE: {avg_train_loss:.4f} | Test MSE: {avg_test_loss:.4f} | Test RMSE: {rmse:.4f} | Test MAE: {mae:.4f} | Test R2: {r2:.4f} | Test Pearson: {pearson_corr:.4f}', flush=True)
+        logger.info(
+            f'Epoch {epoch+1:03d} | Train MSE: {avg_train_loss:.4f} | '
+            f'Test MSE: {avg_test_loss:.4f} | Test RMSE: {rmse:.4f} | '
+            f'Test MAE: {mae:.4f} | Test R2: {r2:.4f} | Test Pearson: {pearson_corr:.4f}'
+        )
 
         # Early Stopping Check
         if avg_test_loss < best_test_loss:
@@ -106,14 +117,14 @@ def train():
             torch.save(model.state_dict(), 'gin_model_best.pth')
         else:
             patience_counter += 1
-            if patience_counter >= patience:
-                print(f"Early stopping triggered at Epoch {epoch+1:03d}!")
-                print(f"Saved best model from Epoch {best_epoch:03d} with Test MSE: {best_test_loss:.4f}")
+            if patience_counter >= args.patience:
+                logger.info(f"Early stopping triggered at Epoch {epoch+1:03d}!")
+                logger.info(f"Saved best model from Epoch {best_epoch:03d} with Test MSE: {best_test_loss:.4f}")
                 break
 
     # Save Model
     torch.save(model.state_dict(), 'gin_model.pth')
-    print("Model saved to gin_model.pth")
+    logger.info("Model saved to gin_model.pth")
 
     # Plot
     plt.figure()
@@ -123,7 +134,16 @@ def train():
     plt.ylabel('MSE Loss')
     plt.legend()
     plt.savefig('gin_training_curve.png')
-    print("Training curve saved to gin_training_curve.png")
+    logger.info("Training curve saved to gin_training_curve.png")
 
 if __name__ == "__main__":
-    train()
+    parser = argparse.ArgumentParser(description="Train GNN Model for Protein Stability")
+    parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training')
+    parser.add_argument('--epochs', type=int, default=50, help='Number of epochs to train')
+    parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('--hidden_dim', type=int, default=128, help='Hidden dimension size for the model')
+    parser.add_argument('--weight_decay', type=float, default=1e-4, help='Weight decay for optimizer')
+    parser.add_argument('--patience', type=int, default=8, help='Early stopping patience')
+    
+    args = parser.parse_args()
+    train(args)
